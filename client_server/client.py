@@ -1,12 +1,31 @@
+import getopt
+import sys
 from socket import *
 
 srvname = 'localhost'
 srvport = 12345
-client_socket = socket(AF_INET, SOCK_DGRAM)
 msg = 'make me uppercase'
-client_socket.sendto(msg.encode(), (srvname, srvport))
+msg_modified = ''
 
-msg_modified, srv_address = client_socket.recvfrom(64)
-print(msg_modified.decode())
+try:
+    opts, args = getopt.getopt(sys.argv[1:], '', ['tcp', 'udp'])
+except getopt.GetoptError as err:
+    print(err)
+    exit(2)
+for opt, arg in opts:
+    if opt == '--tcp':
+        client_socket = socket(AF_INET, SOCK_STREAM)
+        client_socket.connect((srvname, srvport))
+        client_socket.send(msg.encode())
+        msg_modified = client_socket.recv(64)
+        client_socket.close()
+    elif opt == '--udp':
+        client_socket = socket(AF_INET, SOCK_DGRAM)
+        client_socket.settimeout(3)
+        client_socket.sendto(msg.encode(), (srvname, srvport))
+        msg_modified, srv_address = client_socket.recvfrom(64)
+        client_socket.close()
+    else:
+        assert False, "unhandled option"
 
-client_socket.close()
+print(msg_modified)
